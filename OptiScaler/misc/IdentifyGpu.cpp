@@ -395,6 +395,19 @@ void IdentifyGpu::updateD3d12Capabilities(D3d12Proxy::PFN_D3D12CreateDevice o_D3
 
     for (auto& gpuInfo : cache)
     {
+        // Nothing on a DLSS-capable NVIDIA card consumes what this probe learns: vkd3d-proton
+        // detection only labels the API in the menu, and FSR 4 capability is an AMD question.
+        // The cost is real, though. Creating a throwaway D3D12 device inside a Vulkan game makes
+        // a second VkDevice that third-party hooks latch onto -- BG3SE records it and faults when
+        // it is destroyed, and Streamline binds Reflex to it so frame generation never gates on.
+        // Under Proton usesDxvk is always true, so the skip below never fires and every Linux
+        // NVIDIA user pays that price. Forcing an FSR 4 model still opts back in.
+        if (gpuInfo.vendorId == VendorId::Nvidia && gpuInfo.dlssCapable &&
+            Config::Instance()->Fsr4ForceModel.value_or_default() == FSR4Support::None)
+        {
+            continue;
+        }
+
         if (gpuInfo.vendorId != VendorId::AMD && !gpuInfo.usesDxvk &&
             Config::Instance()->Fsr4ForceModel.value_or_default() == FSR4Support::None)
         {
