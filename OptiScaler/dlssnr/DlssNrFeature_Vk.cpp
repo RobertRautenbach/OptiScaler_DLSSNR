@@ -832,6 +832,47 @@ void EvaluateAfterUpscaleVk(VkCommandBuffer cmdBuffer, NVSDK_NGX_Parameter* para
     params->Get(NVSDK_NGX_Parameter_MV_Scale_X, &mvScaleX);
     params->Get(NVSDK_NGX_Parameter_MV_Scale_Y, &mvScaleY);
 
+    // What the game actually handed over, said once and again whenever it changes. The D3D12 path
+    // has always had this; the Vulkan path had nothing, which left the motion-vector metadata
+    // unverifiable on the one renderer where it cannot be cross-checked against the bridge.
+    {
+        static bool said = false;
+        static float lastMvX = 0.0f, lastMvY = 0.0f;
+        static uint32_t lastGuideW = 0, lastGuideH = 0, lastMotionW = 0, lastMotionH = 0;
+        static uint32_t lastWorkW = 0, lastWorkH = 0, lastFrameW = 0, lastFrameH = 0;
+        static bool lastInverted = false, lastLowRes = false;
+
+        if (!said || lastMvX != mvScaleX || lastMvY != mvScaleY || lastGuideW != guideWidth ||
+            lastGuideH != guideHeight || lastMotionW != motionWidth || lastMotionH != motionHeight ||
+            lastWorkW != workWidth || lastWorkH != workHeight || lastFrameW != width ||
+            lastFrameH != height || lastInverted != depthInverted || lastLowRes != lowResolutionMotion)
+        {
+            said = true;
+            lastMvX = mvScaleX; lastMvY = mvScaleY;
+            lastGuideW = guideWidth; lastGuideH = guideHeight;
+            lastMotionW = motionWidth; lastMotionH = motionHeight;
+            lastWorkW = workWidth; lastWorkH = workHeight;
+            lastFrameW = width; lastFrameH = height;
+            lastInverted = depthInverted; lastLowRes = lowResolutionMotion;
+
+            const float toWorkX = width != 0 ? (float) workWidth / (float) width : 1.0f;
+            const float toWorkY = height != 0 ? (float) workHeight / (float) height : 1.0f;
+
+            LOG_INFO("DLSS-NR Vulkan guides: depth {}, motion {} scale {} x {} (model sees {} x {}), "
+                     "HDR flag {}; guides {}x{} at +{},{} | motion {}x{} of {}x{} at +{},{} | "
+                     "model {}x{} | frame {}x{}; formats colour {} depth {} motion {}",
+                     depthInverted ? "inverted" : "normal",
+                     lowResolutionMotion ? "render-res" : "output-res", mvScaleX, mvScaleY,
+                     mvScaleX * toWorkX, mvScaleY * toWorkY, gameSaysHdr ? "set" : "clear",
+                     guideWidth, guideHeight, depthBaseX, depthBaseY,
+                     motionWidth, motionHeight, motionAllocationWidth, motionAllocationHeight,
+                     motionBaseX, motionBaseY, workWidth, workHeight, width, height,
+                     (int) colour->Resource.ImageViewInfo.Format,
+                     (int) depth->Resource.ImageViewInfo.Format,
+                     (int) motion->Resource.ImageViewInfo.Format);
+        }
+    }
+
     // The game asking the upscaler to forget its history -- a cut, a teleport, a load. Same omission
     // as the D3D12 path had: the model's history was only ever reset by things that happened to us,
     // never by anything that happened in the game.
@@ -1102,6 +1143,16 @@ void EvaluateAfterUpscaleVk(VkCommandBuffer cmdBuffer, NVSDK_NGX_Parameter* para
 
     DlssNrConstants resolve = encode;
     resolve.Mode = DlssNrMode_Resolve;
+
+    // The debug and compare views are drawn by the resolve, and this path never passed their
+    // constants -- so every one of them was a no-op on Vulkan while the menu went on offering
+    // them, and "Proxy (what the model sees)" could not answer the question it exists to answer.
+    // Same values the D3D12 path sets, so the two now behave alike.
+    resolve.DebugView = cfg.DlssNrDebugView.value_or_default();
+    resolve.CompareMode = cfg.DlssNrCompare.value_or_default();
+    resolve.CompareSplit = cfg.DlssNrCompareSplit.value_or_default();
+    resolve.CompareZoom = std::max(1.0f, cfg.DlssNrCompareZoom.value_or_default());
+    resolve.CompareSwap = cfg.DlssNrCompareSwap.value_or_default() ? 1u : 0u;
 
     // Supersampling down-leg (Vulkan). Average the Nx model answer back to native with the chosen
     // filter so the resolve composites a native answer against the native proxy 1:1 -- not the single
