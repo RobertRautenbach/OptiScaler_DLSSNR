@@ -34,6 +34,8 @@ using PFN_VkEvaluate = int(__cdecl*)(void*, void*, void*, void*, void*, void*, v
                                      unsigned int, unsigned int, int, int, float, int, float, float, float, int, float,
                                      float);
 using PFN_VkRelease = void(__cdecl*)(void*);
+using PFN_NrSetFloatSlot = void(__cdecl*)(int);
+using PFN_NrProbeFloat = void(__cdecl*)(void*, const char*, float, int);
 
 // One image this pass owns: the storage, the view, and the NGX wrapper that describes it. Kept
 // together because they are created, resized and destroyed as one thing.
@@ -62,6 +64,12 @@ struct VkState
     PFN_VkCreate create = nullptr;
     PFN_VkEvaluate evaluate = nullptr;
     PFN_VkRelease release = nullptr;
+
+    // Where this block keeps floats, and the forwarder calls that find out. Optional: an older
+    // forwarder lacks them and the floats go to the header's slot, as they always did here.
+    PFN_NrSetFloatSlot setFloatSlot = nullptr;
+    PFN_NrProbeFloat probeFloat = nullptr;
+    bool floatSlotKnown = false;
 
     VkInstance instance = VK_NULL_HANDLE;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -427,6 +435,9 @@ bool LoadForwarder()
     g_vk.create = (PFN_VkCreate) GetProcAddress(g_vk.forwarder, "dlssnr_vk_create");
     g_vk.evaluate = (PFN_VkEvaluate) GetProcAddress(g_vk.forwarder, "dlssnr_vk_evaluate");
     g_vk.release = (PFN_VkRelease) GetProcAddress(g_vk.forwarder, "dlssnr_vk_release");
+    // Optional, and shared with the D3D12 path: one global slot inside the forwarder.
+    g_vk.setFloatSlot = (PFN_NrSetFloatSlot) GetProcAddress(g_vk.forwarder, "dlssnr_call_set_float_slot");
+    g_vk.probeFloat = (PFN_NrProbeFloat) GetProcAddress(g_vk.forwarder, "dlssnr_call_probe_float");
 
     if (g_vk.init == nullptr || g_vk.create == nullptr || g_vk.evaluate == nullptr)
     {
@@ -435,6 +446,44 @@ bool LoadForwarder()
     }
 
     return true;
+}
+
+// Where this parameter block keeps floats.
+//
+// The forwarder writes floats through a raw vtable slot, and the public header's answer of 1 does
+// not hold for the driver's own block: a float written there reads back as FAIL_UnsupportedParameter
+// while every uint lands. The D3D12 path has always probed for the real slot. This path never did,
+// so on Vulkan every float the model is given was written into a slot that discards it -- the
+// motion-vector scale first among them, then intensity, local structure, local tone and skin
+// structure. A model reprojecting its history without the game's motion-vector scale is wrong only
+// while something is moving and exact while it is still, which is how the artifact presented.
+void DiscoverFloatSlot(NVSDK_NGX_Parameter* params)
+{
+    if (g_vk.floatSlotKnown || params == nullptr || g_vk.probeFloat == nullptr ||
+        g_vk.setFloatSlot == nullptr)
+        return;
+
+    g_vk.floatSlotKnown = true;
+
+    static const char* kProbeKey = "DLSSNR.OptiScalerFloatProbe";
+    static const int kCandidates[] = { 1, 2, 5, 6, 7, 4, 3, 0 };
+    const float expected = 0.375f; // exact in binary, so the round trip is exact or it is wrong
+
+    for (int slot : kCandidates)
+    {
+        float readBack = 0.0f;
+        g_vk.probeFloat(params, kProbeKey, expected, slot);
+
+        if (params->Get(kProbeKey, &readBack) == NVSDK_NGX_Result_Success && readBack == expected)
+        {
+            g_vk.setFloatSlot(slot);
+            LOG_INFO("DLSS-NR Vulkan: float parameters go through vtable slot {}", slot);
+            return;
+        }
+    }
+
+    LOG_ERROR("DLSS-NR Vulkan: could not find the float setter. The motion-vector scale, intensity, "
+              "local structure, local tone and skin structure will not reach the model.");
 }
 
 // Whether a format can hold linear, open-ended light. A frame the game already tone mapped has white
@@ -684,6 +733,9 @@ void EvaluateAfterUpscaleVk(VkCommandBuffer cmdBuffer, NVSDK_NGX_Parameter* para
             return;
         }
     }
+
+    // Before anything is written to it, work out where this block keeps floats.
+    DiscoverFloatSlot(g_vk.capabilityParams);
 
     if (g_vk.queryPool == VK_NULL_HANDLE)
     {
