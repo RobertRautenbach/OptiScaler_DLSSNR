@@ -77,11 +77,21 @@ bool DLSSG_Dx12::CreateSwapchain(IDXGIFactory* factory, ID3D12CommandQueue* cmdQ
 
     if (!StreamlineProxy::IsD3D12Inited())
     {
-        if (State::Instance().currentD3D12Device != nullptr &&
-            !StreamlineProxy::InitWithD3D12(State::Instance().currentD3D12Device))
+        // A null device used to fall straight through this block and carry on
+        // creating the swap chain, leaving Streamline with no device, NGX
+        // uninitialised and kFeatureDLSS_G unloaded -- and the crash then landed
+        // much later, inside the proxy, with nothing to connect it back to here.
+        auto* device = State::Instance().currentD3D12Device;
+
+        if (device == nullptr)
         {
+            LOG_ERROR("No D3D12 device to initialise Streamline with; refusing to create "
+                      "an FG swapchain that would have no DLSS-G behind it");
             return false;
         }
+
+        if (!StreamlineProxy::InitWithD3D12(device))
+            return false;
     }
 
     _width = desc->BufferDesc.Width;
@@ -181,11 +191,21 @@ bool DLSSG_Dx12::CreateSwapchain1(IDXGIFactory* factory, ID3D12CommandQueue* cmd
 
     if (!StreamlineProxy::IsD3D12Inited())
     {
-        if (State::Instance().currentD3D12Device != nullptr &&
-            !StreamlineProxy::InitWithD3D12(State::Instance().currentD3D12Device))
+        // A null device used to fall straight through this block and carry on
+        // creating the swap chain, leaving Streamline with no device, NGX
+        // uninitialised and kFeatureDLSS_G unloaded -- and the crash then landed
+        // much later, inside the proxy, with nothing to connect it back to here.
+        auto* device = State::Instance().currentD3D12Device;
+
+        if (device == nullptr)
         {
+            LOG_ERROR("No D3D12 device to initialise Streamline with; refusing to create "
+                      "an FG swapchain that would have no DLSS-G behind it");
             return false;
         }
+
+        if (!StreamlineProxy::InitWithD3D12(device))
+            return false;
     }
 
     _width = desc->Width;

@@ -252,6 +252,17 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChain(IDXGIFactory* realFactory, Wrap
                     dx12Queue = WithDx12::GetD3D12CommandQueue();
                 }
 
+                    // Publish the bridge's device and queue now, not after the swap
+                    // chains exist. DLSSG_Dx12::CreateSwapchain reads
+                    // State::currentD3D12Device to hand Streamline a device, and the
+                    // FG swap chain is created below -- so leaving this until after
+                    // meant Streamline was never given one, sl.common could not
+                    // initialise NGX, kFeatureDLSS_G was unloaded, and the swap chain
+                    // was then built through a DLSS-G proxy that had no feature behind
+                    // it. On D3D11 that is every frame-generation attempt.
+                    State::Instance().currentD3D12Device = dx12Device;
+                    State::Instance().currentCommandQueue = dx12Queue;
+
                 if (hiddenHwnd != nullptr && dx12Device != nullptr && dx12Queue != nullptr)
                 {
                     DXGI_SWAP_CHAIN_DESC realDesc = localDesc;
@@ -639,6 +650,17 @@ HRESULT DxgiFactoryWrappedCalls::CreateSwapChainForHwnd(IDXGIFactory2* realFacto
                     dx12Device = WithDx12::GetD3D12Device();
                     dx12Queue = WithDx12::GetD3D12CommandQueue();
                 }
+
+                    // Publish the bridge's device and queue now, not after the swap
+                    // chains exist. DLSSG_Dx12::CreateSwapchain reads
+                    // State::currentD3D12Device to hand Streamline a device, and the
+                    // FG swap chain is created below -- so leaving this until after
+                    // meant Streamline was never given one, sl.common could not
+                    // initialise NGX, kFeatureDLSS_G was unloaded, and the swap chain
+                    // was then built through a DLSS-G proxy that had no feature behind
+                    // it. On D3D11 that is every frame-generation attempt.
+                    State::Instance().currentD3D12Device = dx12Device;
+                    State::Instance().currentCommandQueue = dx12Queue;
 
                 if (hiddenHwnd != nullptr && dx12Device != nullptr && dx12Queue != nullptr)
                 {
