@@ -4,14 +4,14 @@
 #include <Config.h>
 
 #define A_CPU
-#include "precompile/BCDS_bicubic_Shader_Vk.h"
-#include "precompile/BCDS_catmull_Shader_Vk.h"
+#include "precompile/bcds_bicubic_Shader_Vk.h"
+#include "precompile/bcds_catmull_Shader_Vk.h"
 #include "precompile/bcds_lanczos2_Shader_Vk.h"
 #include "precompile/bcds_lanczos3_Shader_Vk.h"
 #include "precompile/bcds_kaiser2_Shader_Vk.h"
 #include "precompile/bcds_kaiser3_Shader_Vk.h"
-#include "precompile/BCDS_magc_Shader_Vk.h"
-#include "precompile/BCUS_Shader_Vk.h"
+#include "precompile/bcds_magc_Shader_Vk.h"
+#include "precompile/bcus_Shader_Vk.h"
 #include "fsr1/ffx_fsr1.h"
 #include "fsr1/FSR_EASU_Shader_Vk.h"
 

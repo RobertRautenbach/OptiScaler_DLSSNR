@@ -8,13 +8,13 @@ using Microsoft::WRL::ComPtr;
 #define A_CPU
 // FSR compute shader is from : https://github.com/fholger/vrperfkit/
 
-#include "precompile/BCDS_bicubic_Shader.h"
-#include "precompile/BCDS_catmull_Shader.h"
-#include "precompile/BCDS_lanczos2_Shader.h"
-#include "precompile/BCDS_lanczos3_Shader.h"
-#include "precompile/BCDS_kaiser2_Shader.h"
-#include "precompile/BCDS_kaiser3_Shader.h"
-#include "precompile/BCDS_magc_Shader.h"
+#include "precompile/bcds_bicubic_Shader.h"
+#include "precompile/bcds_catmull_Shader.h"
+#include "precompile/bcds_lanczos2_Shader.h"
+#include "precompile/bcds_lanczos3_Shader.h"
+#include "precompile/bcds_kaiser2_Shader.h"
+#include "precompile/bcds_kaiser3_Shader.h"
+#include "precompile/bcds_magc_Shader.h"
 
 #include "precompile/BCUS_Shader.h"
 

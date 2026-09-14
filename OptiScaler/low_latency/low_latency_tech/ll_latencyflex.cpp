@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "ll_latencyflex.h"
-#include "config.h"
+#include "Config.h"
 #include <nvapi/fakenvapi/log.h>
 
 void LatencyFlex::lfx_sleep(uint64_t reflex_frame_id)

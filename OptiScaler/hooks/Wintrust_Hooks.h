@@ -4,7 +4,7 @@
 
 #include "detours/detours.h"
 #include <WinTrust.h>
-#include <Softpub.h>
+#include <softpub.h>
 
 #include "Hook_Utils.h"
 

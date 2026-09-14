@@ -5,7 +5,7 @@
 #include <include/device_info/device_info.hpp>
 
 #include <proxies/Dxgi_Proxy.h>
-#include <proxies/D3d12_Proxy.h>
+#include <proxies/D3D12_Proxy.h>
 #include "nvapi/NvApiTypes.h"
 #include <hooks/Amdxc64_Hooks.h>
 

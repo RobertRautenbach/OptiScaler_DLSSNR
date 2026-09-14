@@ -26,10 +26,10 @@
 
 // WinRT
 #undef GetCurrentTime // GetCurrentTime collision
-#include <Windows.UI.Core.h>
+#include <windows.ui.core.h>
 #include <CoreWindow.h>
-#include <Windows.UI.Xaml.Controls.h>
-#include <Windows.UI.Xaml.Hosting.h>
+#include <windows.ui.xaml.controls.h>
+#include <windows.ui.xaml.hosting.h>
 
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;

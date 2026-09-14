@@ -7,7 +7,7 @@
 
 #include <magic_enum.hpp>
 
-#include <resource_tracking/ResTrack_Dx12.h>
+#include <resource_tracking/ResTrack_dx12.h>
 
 #include <proxies/D3D12_Proxy.h>
 #include <proxies/XeFG_Proxy.h>

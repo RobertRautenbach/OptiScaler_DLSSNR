@@ -10,7 +10,7 @@
 #include <inputs/FG/FfxApi_Dx12_FG.h>
 
 #include <hudfix/Hudfix_Dx12.h>
-#include <resource_tracking/ResTrack_Dx12.h>
+#include <resource_tracking/ResTrack_dx12.h>
 
 #include <misc/FrameLimit.h>
 

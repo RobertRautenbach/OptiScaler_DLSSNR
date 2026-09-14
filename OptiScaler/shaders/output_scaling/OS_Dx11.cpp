@@ -7,13 +7,13 @@
 #define A_CPU
 // FSR compute shader is from : https://github.com/fholger/vrperfkit/
 
-#include "precompile/BCDS_bicubic_Shader_Dx11.h"
-#include "precompile/BCDS_catmull_Shader_Dx11.h"
-#include "precompile/BCDS_lanczos2_Shader_Dx11.h"
-#include "precompile/BCDS_lanczos3_Shader_Dx11.h"
-#include "precompile/BCDS_kaiser2_Shader_Dx11.h"
-#include "precompile/BCDS_kaiser3_Shader_Dx11.h"
-#include "precompile/BCDS_magc_Shader_Dx11.h"
+#include "precompile/bcds_bicubic_Shader_Dx11.h"
+#include "precompile/bcds_catmull_Shader_Dx11.h"
+#include "precompile/bcds_lanczos2_Shader_Dx11.h"
+#include "precompile/bcds_lanczos3_Shader_Dx11.h"
+#include "precompile/bcds_kaiser2_Shader_Dx11.h"
+#include "precompile/bcds_kaiser3_Shader_Dx11.h"
+#include "precompile/bcds_magc_Shader_Dx11.h"
 
 #include "precompile/BCUS_Shader_Dx11.h"
 

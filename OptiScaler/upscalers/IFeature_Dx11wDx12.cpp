@@ -7,7 +7,7 @@
 
 #include <Config.h>
 
-#include <proxies/DXGI_Proxy.h>
+#include <proxies/Dxgi_Proxy.h>
 #include <proxies/D3D12_Proxy.h>
 #include <misc/IdentifyGpu.h>
 

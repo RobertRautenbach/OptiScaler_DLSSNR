@@ -127,7 +127,10 @@ class Dx11WithDx12
         UINT64 frameId = 0;
     };
 
-    inline static D3D11_UPSCALER_RESOURCE_CACHE_C UpscalerResourceCache = {};
+    // Declared here, defined after the class closes: an inline static member of a
+    // nested class type requires that type's default member initialisers inside the
+    // enclosing class definition, which is not allowed while it is still incomplete.
+    static D3D11_UPSCALER_RESOURCE_CACHE_C UpscalerResourceCache;
     inline static UINT UpscalerFrameIndex = 0;
     inline static UINT64 UpscalerLocalFrameId = 0;
     inline static UINT64 LastPreparedUpscalerFrameId = 0;
@@ -181,6 +184,8 @@ class Dx11WithDx12
                      ID3D12CommandQueue* dx12CommandQueue);
 };
 
+
+inline Dx11WithDx12::D3D11_UPSCALER_RESOURCE_CACHE_C Dx11WithDx12::UpscalerResourceCache;
 inline Dx11WithDx12::ResourceMask operator|(Dx11WithDx12::ResourceMask a, Dx11WithDx12::ResourceMask b)
 {
     return static_cast<Dx11WithDx12::ResourceMask>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));

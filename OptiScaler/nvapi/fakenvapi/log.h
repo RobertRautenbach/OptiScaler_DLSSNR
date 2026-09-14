@@ -8,7 +8,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "low_latency/ll_util.h"
-#include "config.h"
+#include "Config.h"
 
 #define OK() Ok(__func__)
 #undef ERROR

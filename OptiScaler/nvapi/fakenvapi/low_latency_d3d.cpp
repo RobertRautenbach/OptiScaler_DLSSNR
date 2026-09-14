@@ -6,7 +6,7 @@
 #include "low_latency/low_latency_tech/ll_xell.h"
 
 #include "log.h"
-#include "config.h"
+#include "Config.h"
 #include <hooks/Reflex_Hooks.h>
 #include <framegen/nvngx/Nvngx_FG.h>
 

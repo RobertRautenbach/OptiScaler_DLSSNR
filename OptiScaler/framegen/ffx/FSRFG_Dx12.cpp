@@ -787,7 +787,9 @@ void FSRFG_Dx12::DestroyFGContext()
 {
     _frameCount = 1;
     // _lastDispatchedFrame = 0;
-    _version = {};
+    // Spelled out: `= {}` is ambiguous between the implicit copy/move assignment
+    // and feature_version::operator=(const version_t&). MSVC picks one; clang does not.
+    _version = feature_version {};
 
     LOG_DEBUG("");
 

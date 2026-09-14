@@ -5,7 +5,7 @@
 #include "low_latency/low_latency_tech/ll_latencyflex.h"
 
 #include "log.h"
-#include "config.h"
+#include "Config.h"
 
 // private
 bool LowLatency::update_low_latency_tech(HANDLE vkDevice)

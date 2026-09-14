@@ -2,7 +2,7 @@
 
 #include "with_dx12.h"
 
-#include <proxies/DXGI_Proxy.h>
+#include <proxies/Dxgi_Proxy.h>
 #include <proxies/D3D12_Proxy.h>
 
 HRESULT CreateD3D12DeviceOnAdapter(IDXGIAdapter* adapter, D3D_FEATURE_LEVEL featureLevel, ID3D12Device** device)
