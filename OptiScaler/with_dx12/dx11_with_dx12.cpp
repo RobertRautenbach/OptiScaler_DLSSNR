@@ -208,6 +208,22 @@ bool Dx11WithDx12::EnsureSyncResourcesLocked()
     return true;
 }
 
+bool Dx11WithDx12::GetTextureCopyFenceState(UINT64* completed, UINT64* next)
+{
+    // try_lock, not lock: this runs from a path that has already timed out, and
+    // blocking there would turn a diagnostic into a second hang. The lock also
+    // guards against reading a fence that ReleaseSyncResourcesLocked is destroying.
+    std::unique_lock<std::mutex> lock(SyncMutex, std::try_to_lock);
+    if (!lock.owns_lock() || Dx12FenceTextureCopy == nullptr)
+        return false;
+
+    if (completed != nullptr)
+        *completed = Dx12FenceTextureCopy->GetCompletedValue();
+    if (next != nullptr)
+        *next = TextureCopyFenceValue;
+    return true;
+}
+
 bool Dx11WithDx12::SyncDx11ToDx12()
 {
     std::lock_guard<std::mutex> lock(SyncMutex);

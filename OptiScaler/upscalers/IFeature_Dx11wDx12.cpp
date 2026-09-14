@@ -1,6 +1,8 @@
 #include <pch.h>
 #include "IFeature_Dx11wDx12.h"
 
+#include <format>
+
 #include <dlssnr/DlssNr.h>
 
 #include <Config.h>
@@ -185,10 +187,19 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
         if (waitResult != WAIT_OBJECT_0)
         {
             if (waitResult == WAIT_TIMEOUT)
+            {
+                UINT64 copyCompleted = 0, copyNext = 0;
+                const bool haveCopyState = Dx11WithDx12::GetTextureCopyFenceState(&copyCompleted, &copyNext);
                 LOG_ERROR("D3D12 queue did not drain in {}ms waiting on allocator {} fence {} (completed {}). "
-                          "The queue is most likely parked on a shared D3D11 fence; failing this frame rather "
-                          "than blocking forever.",
-                          kDx12FenceWaitMs, frame, allocatorFenceValue, Dx12Fence->GetCompletedValue());
+                          "Shared texture-copy fence: {}. Failing this frame rather than blocking forever.",
+                          kDx12FenceWaitMs, frame, allocatorFenceValue, Dx12Fence->GetCompletedValue(),
+                          haveCopyState
+                              ? std::format("completed {}, next {} -- {}", copyCompleted, copyNext,
+                                            copyCompleted + 1 < copyNext
+                                                ? "D3D11's signal has NOT landed, so the queue is parked on Wait()"
+                                                : "level, so the stall is downstream of the cross-API fence")
+                              : std::string("unavailable (being torn down)"));
+            }
             else
                 LOG_ERROR("WaitForSingleObject failed for allocator {} fence {}: {:X}", frame, allocatorFenceValue,
                           (UINT) waitResult);

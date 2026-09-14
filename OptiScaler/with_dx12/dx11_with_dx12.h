@@ -69,6 +69,15 @@ class Dx11WithDx12
         bool MissingReactive = false;
     };
 
+    // State of the shared texture-copy fence, for diagnosing a parked D3D12 queue.
+    //
+    // When a wait on the D3D12 queue times out, the question is which side stalled:
+    // if `completed` is behind `next - 1`, D3D11's signal never reached the GPU and
+    // the queue is parked on Wait(); if it is level, the stall is downstream and the
+    // cross-API fence is not involved. Returns false if the sync objects are being
+    // torn down, rather than blocking or touching a released fence.
+    static bool GetTextureCopyFenceState(UINT64* completed, UINT64* next);
+
     // Dx11w12 part
     using D3D11_TEXTURE2D_DESC_C = struct D3D11_TEXTURE2D_DESC_C
     {
