@@ -11,6 +11,21 @@
 
 #include <with_dx12/with_dx12.h>
 
+// How long to wait on the D3D12 queue before giving up.
+//
+// These were INFINITE. Under Proton that is a latent hang rather than a safety net:
+// the D3D12 queue can be parked on Dx12CommandQueue->Wait() for a shared D3D11 fence
+// whose signal has not reached the GPU yet -- DXVK submits from its own CS thread, so
+// Signal() + Flush() on the D3D11 context is not synchronous -- and a CPU thread then
+// blocks here forever waiting for a queue that will never drain. The result is an
+// unrecoverable freeze with nothing logged.
+//
+// Bounded, the same situation becomes a failed frame: every call site below already
+// handles the wait failing, and the backend falls back rather than wedging. Generous
+// enough that a merely slow frame is never mistaken for a deadlock.
+static constexpr DWORD kDx12FenceWaitMs = 2000;
+
+
 void IFeature_Dx11wDx12::ResourceBarrier(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource,
                                          D3D12_RESOURCE_STATES beforeState, D3D12_RESOURCE_STATES afterState)
 {
@@ -166,11 +181,17 @@ bool IFeature_Dx11wDx12::ProcessDx11Textures(const NVSDK_NGX_Parameter* InParame
             return false;
         }
 
-        const auto waitResult = WaitForSingleObject(Dx12FenceEvent, INFINITE);
+        const auto waitResult = WaitForSingleObject(Dx12FenceEvent, kDx12FenceWaitMs);
         if (waitResult != WAIT_OBJECT_0)
         {
-            LOG_ERROR("WaitForSingleObject failed for allocator {} fence {}: {:X}", frame, allocatorFenceValue,
-                      (UINT) waitResult);
+            if (waitResult == WAIT_TIMEOUT)
+                LOG_ERROR("D3D12 queue did not drain in {}ms waiting on allocator {} fence {} (completed {}). "
+                          "The queue is most likely parked on a shared D3D11 fence; failing this frame rather "
+                          "than blocking forever.",
+                          kDx12FenceWaitMs, frame, allocatorFenceValue, Dx12Fence->GetCompletedValue());
+            else
+                LOG_ERROR("WaitForSingleObject failed for allocator {} fence {}: {:X}", frame, allocatorFenceValue,
+                          (UINT) waitResult);
             return false;
         }
     }
@@ -274,7 +295,12 @@ bool IFeature_Dx11wDx12::Init(ID3D11Device* InDevice, ID3D11DeviceContext* InCon
             if (Dx12Fence->GetCompletedValue() < signalled &&
                 Dx12Fence->SetEventOnCompletion(signalled, Dx12FenceEvent) == S_OK)
             {
-                WaitForSingleObject(Dx12FenceEvent, INFINITE);
+                // Safe to time out: Dx12CommandAllocatorFenceValue[0] is recorded above, so
+                // allocator 0 still will not be reset until this work has actually retired.
+                if (WaitForSingleObject(Dx12FenceEvent, kDx12FenceWaitMs) == WAIT_TIMEOUT)
+                    LOG_WARN("Feature creation work has not retired after {}ms (fence {}, completed {}); "
+                             "carrying on -- the allocator guard still holds.",
+                             kDx12FenceWaitMs, signalled, Dx12Fence->GetCompletedValue());
             }
         }
 
